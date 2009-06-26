@@ -1,0 +1,288 @@
+#!/usr/bin/python
+#-*- coding: utf-8 -*-
+"""
+Graph an ElectricSheep farm and access it's files
+Copyright (C) 2009  Matías Aguirre
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+"""
+import os
+import sys
+from optparse import OptionParser
+
+sys.path.append('/usr/lib/pyshared/python2.5')
+import gv
+
+
+try:
+    from graph import digraph
+except ImportError: # ubuntu :(
+    from pygraph import digraph
+    if hasattr(digraph, 'node_degree') and hasattr(digraph, 'node_order'):
+        digraph.degree = digraph.node_degree
+        digraph.order = digraph.node_order
+    else:
+        raise
+except ImportError:
+    print """
+    Missing python-graph.
+        Debian: apt-get install python-graph
+        Ubuntu: apt-get install python-pygraph
+    """
+    sys.exit(1)
+
+
+SHEEP_DIR       = '.sheep'
+SHEEP_SEP       = '='
+SHEEP_EXT       = '.mpg'
+SHEEP_PATH      = os.path.join(os.environ['HOME'], SHEEP_DIR)
+#MPLAYER_COMMAND = 'mplayer -really-quiet -fs -fixed-vo %s'
+MISSING_COLOR   = 'crimson'
+EXISTS_COLOR    = 'darkolivegreen1'
+DESCRIPTION     = 'Electric sheeps relations.'
+
+
+def get_graphs(directory=SHEEP_PATH):
+    """
+    Return a list of (flock, graph, files) where
+        * flock is the common flock in graph
+        * graph is a digraph graph
+        * files is a dict with node id as key
+          and file name as value
+
+    Sheep data sintax from file name:
+        flock=node_id=prev_id=next_id.mpg
+    """
+    flocks, graphs, files = [], {}, {}
+
+    for fname in os.listdir(directory):
+        if fname.endswith(SHEEP_EXT):
+            flock, current, prev, next = fname.replace(SHEEP_EXT, '').\
+                                               split(SHEEP_SEP)
+
+            if not flock in flocks:
+                flocks.append(flock)
+                files[flock] = {}
+                graphs[flock] = digraph()
+
+            files[flock][current] = os.path.join(directory, fname)
+            graphs[flock].add_nodes([current, prev, next])
+
+            if current != next != prev: # avoid loopers
+                graphs[flock].add_edge(prev, current)
+                graphs[flock].add_edge(current, next)
+    return [ (flock, graphs[flock], files[flock]) for flock in flocks ]
+
+
+def filter_missing_files(graph, files):
+    """
+    Remove nodes that are missing in filesystem
+    but are refered as pervious or next video
+    in the flock.
+    """
+    for node in graph.nodes():
+        if node not in files:
+            graph.del_node(node)
+
+
+def filter_loner(graph):
+    """Remove single nodes from graph."""
+    for node in graph.nodes():
+        if graph.degree(node) == graph.order(node) == 0:
+            graph.del_node(node)
+
+
+def dump_graph(flock, graph, files, output_type='svg', colored=True):
+    """
+    Generate a <output_type> file from the graph, default
+    type to a svg image. <output_type> must be supported
+    by gv library.
+    """
+    if colored:
+        for node in graph.nodes():
+            graph.add_node_attribute(node, ('style', 'filled'))
+            if node in files:
+                graph.add_node_attribute(node, ('fillcolor', EXISTS_COLOR))
+            else:
+                graph.add_node_attribute(node, ('fillcolor', MISSING_COLOR))
+                for neighbor in graph.neighbors(node):
+                    graph.add_edge_attribute(node, neighbor,
+                                             ('style', 'dashed'))
+
+    gvv = gv.readstring(graph.write('dot'))
+    gv.layout(gvv, 'dot')
+    name = flock + '.' + output_type
+    gv.render(gvv, output_type, name)
+    return name
+
+
+def traversal(graph):
+    """
+    Build a list with possible paths for all root nodes in
+    the graph.
+
+    The list is ordered decrecent by length.
+    """
+    def _plain(values):
+        """
+        Generates all the possible paths from a tree build in
+        a list. Example:
+            In: [a, [b, [c] , [d]]]
+            Out: [[a, b, c], [a, b, d]]
+        """
+        if len(values) == 1:
+            return [values]
+        
+        result = []
+        for sub in values[1:]:
+            result += [ values[:1] + i for i in _plain(sub) ]
+        return result
+
+    passed = []
+    def _traversal(graph, node, parent=None):
+        """
+        Generate a spanning tree for node <node>.
+        Removes cycles.
+        """
+        if parent:
+            if (parent, node) in passed:
+                return [node]
+            passed.append((parent, node))
+        return [node] + [_traversal(graph, e, node)
+                            for e in graph.neighbors(node)]
+
+    result = []
+    for node in graph.nodes():
+        if graph.degree(node) == 0:
+            for path in _plain(_traversal(graph, node)):
+                result.append(path)
+    result.sort(lambda a, b: cmp(len(a), len(b)))
+    return result
+
+
+def get_options():
+    """Process command line options"""
+    options = (
+        ('--farm', SHEEP_PATH, SHEEP_PATH, 'electric sheep directory.',
+         'store'),
+        ('--graphs', None, False, 'output graphs files (one per flock).',
+         'store_true'),
+        ('--color', None, True, 'colored graphs. Implies --graphs',
+         'store_true'),
+        ('--output-type', None, 'svg', 'graph output format. Implies --graphs',
+         'store'),
+        ('--only-biggest', None, False,
+         'output biggest familly. Disables --no-discard-missing', 'store_true'),
+        ('--full-play', None, False, 'output a full play sequence. Implies ' \
+         '--print-paths and disables --no-discard-missing', 'store_true'),
+        ('--print-paths', None, False, 'displays graph paths.', 'store_true'),
+        ('--no-discard-loner', None, False, 'discards length 1 sequences.',
+         'store_true'),
+        ('--no-discard-missing', None, False,
+         'discards sequences with missing files.', 'store_true'))
+
+    parser = OptionParser(usage='%prog [options]', description=DESCRIPTION)
+
+    for (opt, metavar, default, help_string, action) in options:
+        parser.add_option(opt, metavar=metavar, default=default,
+                          help=help_string, action=action)
+
+    opts = parser.parse_args()[0]
+    
+    if opts.full_play or opts.only_biggest:
+        opts.no_discard_missing = False
+
+    if not (opts.graphs or opts.full_play or opts.print_paths):
+        parser.print_help()
+        sys.exit(1)
+
+    return opts
+
+
+def files_list(path, files):
+    """Maps a set of nodes to it's files
+    and joins the result list to be ready to use
+    with a video player"""
+    return ' '.join([ files[i] for i in path ])
+
+
+def clean_graphs(graphs, discard_missing=True, discard_loner=True):
+    """Remove nodes if
+        * file for node-id doesn't exist
+        * the node is loner
+    """
+    if discard_missing or discard_loner:
+        for data in iter(graphs):
+            if discard_missing:
+                filter_missing_files(data[1], data[2])
+            if discard_loner:
+                filter_loner(data[1])
+
+
+def keep_biggest(graphs):
+    """Remove all except the bigger path in a graph"""
+    result, biggers = [], []
+
+    for flock, graph, files in iter(graphs):
+        paths = traversal(graph)
+        if paths:
+            biggers.append((flock, graph, files, paths[-1]))
+
+    for flock, graph, files, path in biggers:
+        for node in (node for node in graph.nodes() if node not in path):
+            graph.del_node(node)
+        result.append((flock, graph, files))
+    return result
+
+
+def run():
+    """Program start"""
+
+    opts = get_options()
+
+    data = get_graphs(opts.farm)
+    if not data:
+        print 'No data to process'
+        sys.exit(1)
+
+    if not opts.no_discard_missing or not opts.no_discard_loner:
+        clean_graphs(data, not opts.no_discard_missing,
+                           not opts.no_discard_missing)
+
+    if opts.only_biggest:
+        data = keep_biggest(data)
+
+    if opts.full_play or opts.print_paths:
+        all_paths = []
+
+        if opts.full_play:
+            for flock, graph, files in iter(data):
+                all_paths += [ files_list(path, files)
+                                 for path in traversal(graph) ]
+            all_paths = [ ' '.join(all_paths) ]
+        elif opts.print_paths:
+            for flock, graph, files in iter(data):
+                all_paths += [ files_list(path, files)
+                                    for path in traversal(graph) ]
+        print '\n'.join([files for files in all_paths])
+
+    if opts.graphs:
+        for flock, graph, files in iter(data):
+            print dump_graph(flock, graph, files, colored=opts.color,
+                             output_type=opts.output_type)
+
+
+if __name__ == '__main__':
+    run()

@@ -1,0 +1,50 @@
+Copyright (C) 2009  Matías Aguirre
+
+Electric sheep Graph utility
+
+
+1. Description
+
+farm is a Python program to show the relations between sheeps in a
+Electric Sheep[1] sheep flock. It has options to output as a graph, filter
+missing sheeps, graph paths, etc.
+
+
+2. Requirements
+
+    * An Electric sheep farm
+    * pydot (http://code.google.com/p/pydot/)
+    * python-graph (http://code.google.com/p/python-graph/)
+    * libgv-python (http://www.graphviz.org/)
+
+
+3. Output options available
+    --graphs    Will create a file with the graph data, one file per
+                flock.
+
+    --color     Should the graph has colours? At the moment the color
+                marks are for missing/existing files.
+                Default to true
+
+    --output-type   Graph data output format. farm uses graphviz[2]
+                    to output it's graph data, supporting all its formats[3].
+                    Defaults to svg files.
+
+    --only-biggest  Only process the biggest path in a flock (useful for
+                    playing big sheep sequences of).
+        
+    --print-paths   Outputs files in graph paths, useful to do:
+                    mplayer -fs -really-quiet -fixed-vo $(./farm --print-paths)
+                    to play sheep sequences.
+
+    --full-play     Outputs all the paths as --print-paths, one after each other.
+         
+    --no-discard-loner  By default loner nodes are discarded from outputs.
+    
+    --no-discard-missing  By default nodes which files are missing are discarded
+                          from outputs.
+
+
+[1]: http://community.sheepserver.net/
+[2]: http://www.graphviz.org/
+[3]: http://www.graphviz.org/doc/info/output.html
