@@ -44,6 +44,8 @@ missing sheeps, graph paths, etc.
     --no-discard-missing  By default nodes which files are missing are discarded
                           from outputs.
 
+    --flock     Limit output to the passed flock
+
 
 [1]: http://community.sheepserver.net/
 [2]: http://www.graphviz.org/

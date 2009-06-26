@@ -54,7 +54,7 @@ EXISTS_COLOR    = 'darkolivegreen1'
 DESCRIPTION     = 'Electric sheeps relations.'
 
 
-def get_graphs(directory=SHEEP_PATH):
+def get_graphs(directory=SHEEP_PATH, filter_flock=None):
     """
     Return a list of (flock, graph, files) where
         * flock is the common flock in graph
@@ -71,6 +71,9 @@ def get_graphs(directory=SHEEP_PATH):
         if fname.endswith(SHEEP_EXT):
             flock, current, prev, next = fname.replace(SHEEP_EXT, '').\
                                                split(SHEEP_SEP)
+
+            if filter_flock and flock != filter_flock:
+                continue
 
             if not flock in flocks:
                 flocks.append(flock)
@@ -144,7 +147,7 @@ def traversal(graph):
         """
         if len(values) == 1:
             return [values]
-        
+
         result = []
         for sub in values[1:]:
             result += [ values[:1] + i for i in _plain(sub) ]
@@ -177,6 +180,7 @@ def get_options():
     options = (
         ('--farm', SHEEP_PATH, SHEEP_PATH, 'electric sheep directory.',
          'store'),
+        ('--flock', 'FLOCK', None, 'limit farm to this flock.', 'store'),
         ('--graphs', None, False, 'output graphs files (one per flock).',
          'store_true'),
         ('--color', None, True, 'colored graphs. Implies --graphs',
@@ -200,7 +204,7 @@ def get_options():
                           help=help_string, action=action)
 
     opts = parser.parse_args()[0]
-    
+
     if opts.full_play or opts.only_biggest:
         opts.no_discard_missing = False
 
@@ -252,7 +256,7 @@ def run():
 
     opts = get_options()
 
-    data = get_graphs(opts.farm)
+    data = get_graphs(opts.farm, opts.flock)
     if not data:
         print 'No data to process'
         sys.exit(1)
