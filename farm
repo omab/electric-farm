@@ -44,9 +44,9 @@ except ImportError:
     sys.exit(1)
 
 
-SHEEP_DIR       = '.sheep'
+SHEEP_DIR       = '.electricsheep'
 SHEEP_SEP       = '='
-SHEEP_EXT       = '.mpg'
+SHEEP_EXT       = '.avi'
 SHEEP_PATH      = os.path.join(os.environ['HOME'], SHEEP_DIR)
 #MPLAYER_COMMAND = 'mplayer -really-quiet -fs -fixed-vo %s'
 MISSING_COLOR   = 'crimson'
