@@ -28,21 +28,16 @@ import gv
 
 try:
     from graph import digraph
-except ImportError: # ubuntu :(
-    from pygraph import digraph
-    if hasattr(digraph, 'node_degree') and hasattr(digraph, 'node_order'):
-        digraph.degree = digraph.node_degree
-        digraph.order = digraph.node_order
-    else:
-        raise
-except ImportError:
-    print """
-    Missing python-graph.
-        Debian: apt-get install python-graph
-        Ubuntu: apt-get install python-pygraph
-    """
-    sys.exit(1)
-
+except ImportError: # ubuntu
+    try:
+        from pygraph.classes.digraph import digraph
+    except ImportError:
+        print """
+        Missing python-graph.
+            Debian: apt-get install python-graph
+            Ubuntu: apt-get install python-pygraph
+        """
+        sys.exit(1)
 
 SHEEP_DIR       = '.electricsheep'
 SHEEP_SEP       = '='
@@ -81,12 +76,19 @@ def get_graphs(directory=SHEEP_PATH, filter_flock=None):
                 graphs[flock] = digraph()
 
             files[flock][current] = os.path.join(directory, fname)
-            graphs[flock].add_nodes([current, prev, next])
+            if not graphs[flock].has_node(current):
+                graphs[flock].add_node(current)
+            if not graphs[flock].has_node(prev):
+                graphs[flock].add_node(prev)
+            if not graphs[flock].has_node(next):
+                graphs[flock].add_node(next)
 
-            if current != next != prev: # avoid loopers
-                graphs[flock].add_edge(prev, current)
-                graphs[flock].add_edge(current, next)
-    return [ (flock, graphs[flock], files[flock]) for flock in flocks ]
+            # avoid loopers
+            if current != next:
+                graphs[flock].add_edge((current, next))
+            if current != prev:
+                graphs[flock].add_edge((prev, current))
+    return [(flock, graphs[flock], files[flock]) for flock in flocks]
 
 
 def filter_missing_files(graph, files):
@@ -103,7 +105,7 @@ def filter_missing_files(graph, files):
 def filter_loner(graph):
     """Remove single nodes from graph."""
     for node in graph.nodes():
-        if graph.degree(node) == graph.order(node) == 0:
+        if len(graph.incidents(node)) == graph.node_order(node) == 0:
             graph.del_node(node)
 
 
@@ -168,7 +170,7 @@ def traversal(graph):
 
     result = []
     for node in graph.nodes():
-        if graph.degree(node) == 0:
+        if graph.incidents(node) != 0:
             for path in _plain(_traversal(graph, node)):
                 result.append(path)
     result.sort(lambda a, b: cmp(len(a), len(b)))
@@ -277,9 +279,9 @@ def run():
                                  for path in traversal(graph) ]
             all_paths = [ ' '.join(all_paths) ]
         elif opts.print_paths:
-            for flock, graph, files in iter(data):
-                all_paths += [ files_list(path, files)
-                                    for path in traversal(graph) ]
+            for flock, graph, files in data:
+                all_paths += [files_list(path, files)
+                                    for path in traversal(graph)]
         print '\n'.join([files for files in all_paths])
 
     if opts.graphs:
