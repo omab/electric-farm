@@ -1,24 +1,34 @@
 Copyright (C) 2009  Matías Aguirre
 
+============================
 Electric sheep Graph utility
+============================
+
+-----------
+Description
+-----------
+farm is a Python script to show the relations between sheeps in a
+`Electric Sheep`_ sheep flock. It has options to output as a graph,
+filter missing sheeps, graph paths, etc.
 
 
-1. Description
+------------
+Dependencies
+------------
+Dependencies that must be meet to use the app:
 
-farm is a Python program to show the relations between sheeps in a
-Electric Sheep[1] sheep flock. It has options to output as a graph, filter
-missing sheeps, graph paths, etc.
-
-
-2. Requirements
-
-    * An Electric sheep farm
-    * pydot (http://code.google.com/p/pydot/)
-    * python-graph (http://code.google.com/p/python-graph/)
-    * libgv-python (http://www.graphviz.org/)
+- An ElectricSheep farm
+- pydot_
+- python-graph_
+- libgv-python_
 
 
-3. Output options available
+----------------------
+Parameters description
+----------------------
+
+Some script parameters::
+
     --graphs    Will create a file with the graph data, one file per
                 flock.
 
@@ -26,8 +36,8 @@ missing sheeps, graph paths, etc.
                 marks are for missing/existing files.
                 Default to true
 
-    --output-type   Graph data output format. farm uses graphviz[2]
-                    to output it's graph data, supporting all its formats[3].
+    --output-type   Graph data output format. farm uses graphviz_
+                    to output it's graph data, supporting all its formats_.
                     Defaults to svg files.
 
     --only-biggest  Only process the biggest path in a flock (useful for
@@ -47,6 +57,9 @@ missing sheeps, graph paths, etc.
     --flock     Limit output to the passed flock
 
 
-[1]: http://community.sheepserver.net/
-[2]: http://www.graphviz.org/
-[3]: http://www.graphviz.org/doc/info/output.html
+.. _Electrict Sheep: http://community.sheepserver.net/
+.. _graphviz: http://www.graphviz.org/
+.. _formats: http://www.graphviz.org/doc/info/output.html
+.. _pydot: http://code.google.com/p/pydot/
+.. _python-graph: http://code.google.com/p/python-graph/
+.. _libgv-python: http://www.graphviz.org/
