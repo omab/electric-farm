@@ -26,7 +26,6 @@ Dependencies that must be meet to use the app:
 ----------------------
 Parameters description
 ----------------------
-
 Some script parameters::
 
     --graphs    Will create a file with the graph data, one file per
@@ -36,9 +35,7 @@ Some script parameters::
                 marks are for missing/existing files.
                 Default to true
 
-    --output-type   Graph data output format. farm uses graphviz_
-                    to output it's graph data, supporting all its formats_.
-                    Defaults to svg files.
+    --output-type   Output type, defaults to SVG.
 
     --only-biggest  Only process the biggest path in a flock (useful for
                     playing big sheep sequences of).
@@ -56,6 +53,7 @@ Some script parameters::
 
     --flock     Limit output to the passed flock
 
+farm uses graphviz_ to output it's graph data, supporting all its formats_.
 
 .. _Electrict Sheep: http://community.sheepserver.net/
 .. _graphviz: http://www.graphviz.org/
