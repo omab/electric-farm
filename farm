@@ -162,9 +162,10 @@ def traversal(graph):
         Removes cycles.
         """
         if parent:
-            if (parent, node) in passed:
+            if parent in passed and node in passed:
                 return [node]
-            passed.append((parent, node))
+            passed.append(node)
+            passed.append(parent)
         return [node] + [_traversal(graph, e, node)
                             for e in graph.neighbors(node)]
 

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 COMMAND="mplayer -fs -really-quiet -fixed-vo -rootwin"
 
